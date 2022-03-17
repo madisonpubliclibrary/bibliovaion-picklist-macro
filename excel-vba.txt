@@ -1,0 +1,458 @@
+Sub Sort_Picklist()
+'
+' Sort_Picklist Macro
+' Developed by former HPB Page, Sam Anderson
+'
+' Keyboard Shortcut: Ctrl+q
+
+'This macro has two parts: 1) adding specialized sorting and 2) formatting the page for printing
+
+'PART 1: SPECIAL SORT
+'Set value in column F <of the holds download> to a special sort ID, which is used to organize how items show up in the picklist for max efficiency.
+'special sort ID is determined by the Type and Collection values listed in the PICK LIST spreadsheet.xlsb workbook (ccode sort worksheet)
+
+Set wb = ThisWorkbook
+Set sht = ActiveSheet
+
+'Change to reflect the location of the `ccode sort.xlsx` template file
+'The first 3 coumns of this template MUST be Collection Code, Location, Merge with Row Below?
+Workbooks.Open "\\MADSD123\Picklist Macro\ccode sort.xlsx"
+Workbooks("ccode sort.xlsx").Activate
+Worksheets("ccode sort").Activate
+Worksheets("ccode sort").Unprotect
+
+Dim count As Integer
+count = 0
+
+'Creating two arrays, one of which holds the concatenated Code/Collection from ccode sort, and the other holds the special sort #
+Dim specialSort As Object
+Set specialSort = CreateObject("System.Collections.ArrayList")
+
+Dim collectionCodes As Object
+Set collectionCodes = CreateObject("System.Collections.ArrayList")
+
+Range("A2").Select
+Do Until Selection.Value = ""
+    If Selection.Offset(0, 2).Value <> "" Then
+        specialSort.Add (count)
+        collectionCodes.Add (Selection.Value & Selection.Offset(0, 1).Value)
+    Else
+        specialSort.Add (count)
+        collectionCodes.Add (Selection.Value & Selection.Offset(0, 1).Value)
+        'Only increment count if x is not indicated, i.e. the next line shouldn't be grouped with the current one
+        count = count + 1
+    End If
+    Selection.Offset(1, 0).Select
+Loop
+
+'noting the size of the arrays
+Dim size As Integer
+size = specialSort.count
+
+'Protecting the sheet, closing workbook
+Worksheets("ccode sort").Protect
+Workbooks("ccode sort.xlsx").Close SaveChanges:=False
+
+'Back to the actual picklist
+wb.Activate
+sht.Activate
+Range("A1").Select
+
+'Delete irrelevant columns
+Do Until Selection.Value = ""
+    If Selection.Value = "Title" Or Selection.Value = "Collection" Or Selection.Value = "Shelving Location" Or Selection.Value = "Call Number" Or Selection.Value = "barcode" Or Selection.Value = "Enum/Chron" Then
+        Selection.Offset(0, 1).Select
+    Else
+        Columns(ActiveCell.Column).EntireColumn.Delete
+    End If
+Loop
+
+'Use Enum/Chron if Call Number is blank
+Range("D2").Select
+Do Until Selection.Offset(0, -3) = ""
+    If Selection.Value = "" Then
+        Selection.Value = Selection.Offset(0, 1)
+    End If
+    Selection.Offset(1, 0).Select
+Loop
+Range("E2").Select
+Columns(ActiveCell.Column).EntireColumn.Delete
+
+'Set the special sort ID based on values in the arrays
+Range("F1") = "special sort id"
+Range("A2").Select
+
+Do Until Selection.Value = ""
+
+    'Trimming whitespace on the Call # so sorting works correctly
+    'Also, added editing for invalid call #s (ex. "=+ CD-AUDIO BOOK Fic Col", which Excel tries to read as a formula and throws errors)
+    Selection.Offset(0, 3).Value = WorksheetFunction.IfError(Selection.Offset(0, 3), "<INVALID CALL NUMBER>")
+    Selection.Offset(0, 3).Value = Trim(Selection.Offset(0, 3).Value)
+
+
+    count = 0
+    Do Until count = size Or Selection.Offset(0, 5).Value <> ""
+        If collectionCodes(count) = Selection.Offset(0, 1).Value & Selection.Offset(0, 2).Value Then
+            Selection.Offset(0, 5).Value = specialSort(count)
+        End If
+        count = count + 1
+    Loop
+
+    'Hardcoding for HPB: specialized sort for regular picture books
+    If (Selection.Offset(0, 1) & Selection.Offset(0, 2)) = "PBJFICH" Then
+        Dim lilCount As Integer
+        lilCount = 101 'setting to 101 because if we increment from just 1, then we'd get .1-.12, which is going to sort incorrectly
+        'Items appear in the order of the categories specified below
+        'To update the sort order, cut and paste the ENTIRE BLOCK OF CODE (from the comment to the next line space).
+
+            'Favorites
+                If Left(Selection.Offset(0, 3), 3) = "FAV" Then
+                    Selection.Offset(0, 5) = Selection.Offset(0, 5) & "." & lilCount
+                End If
+                lilCount = lilCount + 1
+
+            'Rhymes
+                If Left(Selection.Offset(0, 3), 3) = "RHY" Then
+                    Selection.Offset(0, 5) = Selection.Offset(0, 5) & "." & lilCount
+                End If
+                lilCount = lilCount + 1
+
+            'Animals
+                If Left(Selection.Offset(0, 3), 3) = "ANI" Then
+                    Selection.Offset(0, 5) = Selection.Offset(0, 5) & "." & lilCount
+                End If
+                lilCount = lilCount + 1
+
+            'Nature
+                If Left(Selection.Offset(0, 3), 3) = "NAT" Then
+                    Selection.Offset(0, 5) = Selection.Offset(0, 5) & "." & lilCount
+                End If
+                lilCount = lilCount + 1
+
+            'Stories
+                If Left(Selection.Offset(0, 3), 3) = "STO" Then
+                    Selection.Offset(0, 5) = Selection.Offset(0, 5) & "." & lilCount
+                End If
+                lilCount = lilCount + 1
+
+            'Celebration
+                If Left(Selection.Offset(0, 3), 3) = "CEL" Then
+                    Selection.Offset(0, 5) = Selection.Offset(0, 5) & "." & lilCount
+                End If
+                lilCount = lilCount + 1
+
+            'Concepts
+                If Left(Selection.Offset(0, 3), 3) = "CON" Then
+                    Selection.Offset(0, 5) = Selection.Offset(0, 5) & "." & lilCount
+                End If
+                lilCount = lilCount + 1
+
+            'Folk
+                If Left(Selection.Offset(0, 3), 3) = "FOL" Then
+                    Selection.Offset(0, 5) = Selection.Offset(0, 5) & "." & lilCount
+                End If
+                lilCount = lilCount + 1
+
+            'Characters
+                If Left(Selection.Offset(0, 3), 3) = "CHA" Then
+                    Selection.Offset(0, 5) = Selection.Offset(0, 5) & "." & lilCount
+                End If
+                lilCount = lilCount + 1
+
+            'Things that GO
+                If Left(Selection.Offset(0, 3), 2) = "GO" Then
+                    Selection.Offset(0, 5) = Selection.Offset(0, 5) & "." & lilCount
+                End If
+                lilCount = lilCount + 1
+
+            'Growing
+                If Left(Selection.Offset(0, 3), 3) = "GRO" Then
+                    Selection.Offset(0, 5) = Selection.Offset(0, 5) & "." & lilCount
+                End If
+                lilCount = lilCount + 1
+
+            'Advanced
+                If Left(Selection.Offset(0, 3), 3) = "ADV" Then
+                    Selection.Offset(0, 5) = Selection.Offset(0, 5) & "." & lilCount
+                End If
+                lilCount = lilCount + 1
+    End If
+
+    'Hardcoding for HPB: specialized sorting for new picture books
+    If (Selection.Offset(0, 1) & Selection.Offset(0, 2)) = "PBJFINC" Then
+        'In order to get everything to sort correctly, I'm going to SWAP the category with the author name
+            'i.e. Call Number now reads: <Author name> <CATEGORY>
+        Selection.Offset(0, 3) = Right(Selection.Offset(0, 3).Value, (Len(Selection.Offset(0, 3).Value) - (InStr(Selection.Offset(0, 3).Value, " ")))) & " " & Left(Selection.Offset(0, 3).Value, InStr(Selection.Offset(0, 3).Value, " "))
+        'Also trimming whitespace for more accurate sortig
+        Selection.Offset(0, 3) = Trim(Selection.Offset(0, 3))
+    End If
+
+    'Setting a default for unidentified codes (will send them to the end of sort)
+    If Selection.Offset(0, 5).Value = "" Then
+        Selection.Offset(0, 5).Value = 999
+    End If
+
+    Selection.Offset(1, 0).Select
+Loop
+
+    'Sorts list based on special sort id
+    Range("A2").Select
+    Selection.AutoFilter
+    Range("A2").Select
+
+    ActiveSheet.AutoFilter.Sort.SortFields.Clear
+    ActiveSheet.AutoFilter.Sort.SortFields.Add Order:=xlAscending, _
+    SortOn:=xlSortOnValues, Key:=Range("D:D")
+
+    ActiveSheet.AutoFilter.Sort.Apply
+
+    ActiveSheet.AutoFilter.Sort.SortFields.Clear
+    ActiveSheet.AutoFilter.Sort.SortFields.Add Order:=xlAscending, _
+    SortOn:=xlSortOnValues, Key:=Range("F:F")
+
+    ActiveSheet.AutoFilter.Sort.Apply
+
+
+    'Deletes the special sort id column
+    Columns("F:F").Select
+    Selection.Delete Shift:=xlToLeft
+
+    'Clear filter
+    Range("A2").Select
+    Selection.AutoFilter
+
+
+'PART 2: FORMATTING PAGE TO PRINT
+'Courtesy of Mike, former HPB page :)
+
+
+    Rows("1:1").Select
+    Selection.Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
+    Columns("A:A").ColumnWidth = 23.82
+    Columns("C:C").ColumnWidth = 4
+    Columns("D:D").ColumnWidth = 31.64
+    Range("E1").Select
+    Columns("A:A").ColumnWidth = 28.27
+    Cells.Replace What:="Selected copy:", Replacement:=" ", LookAt:=xlPart, _
+        SearchOrder:=xlByRows, MatchCase:=False, SearchFormat:=False, _
+        ReplaceFormat:=False
+    Columns("E:E").ColumnWidth = 16.55
+    Columns("E:E").Select
+    Selection.NumberFormat = "0"
+    Selection.ColumnWidth = 14.36
+    Columns("A:E").Select
+    Selection.RowHeight = 25
+
+    With Selection
+        .HorizontalAlignment = xlGeneral
+        .VerticalAlignment = xlBottom
+        .WrapText = True
+        .Orientation = 0
+        .AddIndent = False
+        .IndentLevel = 0
+        .ShrinkToFit = False
+        .ReadingOrder = xlContext
+        .MergeCells = False
+    End With
+    Selection.RowHeight = 26
+
+    With ActiveSheet.PageSetup
+        .PrintTitleRows = "$2:$2"
+        .PrintTitleColumns = ""
+    End With
+
+    With ActiveSheet.PageSetup
+        .LeftHeader = ""
+        .CenterHeader = ""
+        .RightHeader = ""
+        .LeftFooter = ""
+        .CenterFooter = ""
+        .RightFooter = ""
+        .LeftMargin = Application.InchesToPoints(0.7)
+        .RightMargin = Application.InchesToPoints(0.7)
+        .TopMargin = Application.InchesToPoints(0.75)
+        .BottomMargin = Application.InchesToPoints(0.75)
+        .HeaderMargin = Application.InchesToPoints(0.3)
+        .FooterMargin = Application.InchesToPoints(0.3)
+        .PrintHeadings = False
+        .PrintGridlines = False
+        .PrintComments = xlPrintNoComments
+        .CenterHorizontally = False
+        .CenterVertically = False
+        .Orientation = xlPortrait
+        .Draft = False
+        .PaperSize = xlPaperLetter
+        .FirstPageNumber = xlAutomatic
+        .Order = xlDownThenOver
+        .BlackAndWhite = False
+        .Zoom = 100
+        .PrintErrors = xlPrintErrorsDisplayed
+        .OddAndEvenPagesHeaderFooter = False
+        .DifferentFirstPageHeaderFooter = False
+        .ScaleWithDocHeaderFooter = True
+        .AlignMarginsHeaderFooter = True
+        .EvenPage.LeftHeader.Text = ""
+        .EvenPage.CenterHeader.Text = ""
+        .EvenPage.RightHeader.Text = ""
+        .EvenPage.LeftFooter.Text = ""
+        .EvenPage.CenterFooter.Text = ""
+        .EvenPage.RightFooter.Text = ""
+        .FirstPage.LeftHeader.Text = ""
+        .FirstPage.CenterHeader.Text = ""
+        .FirstPage.RightHeader.Text = ""
+        .FirstPage.LeftFooter.Text = ""
+        .FirstPage.CenterFooter.Text = ""
+        .FirstPage.RightFooter.Text = ""
+    End With
+
+    With ActiveSheet.PageSetup
+        .PrintTitleRows = "$2:$2"
+        .PrintTitleColumns = ""
+    End With
+
+    With ActiveSheet.PageSetup
+        .LeftHeader = ""
+        .CenterHeader = ""
+        .RightHeader = ""
+        .LeftFooter = "&D"
+        .CenterFooter = "Page &P of &N"
+        .RightFooter = ""
+        .LeftMargin = Application.InchesToPoints(0.7)
+        .RightMargin = Application.InchesToPoints(0.7)
+        .TopMargin = Application.InchesToPoints(0.75)
+        .BottomMargin = Application.InchesToPoints(0.75)
+        .HeaderMargin = Application.InchesToPoints(0.3)
+        .FooterMargin = Application.InchesToPoints(0.3)
+        .PrintHeadings = False
+        .PrintGridlines = False
+        .PrintComments = xlPrintNoComments
+        .CenterHorizontally = False
+        .CenterVertically = False
+        .Orientation = xlPortrait
+        .Draft = False
+        .PaperSize = xlPaperLetter
+        .FirstPageNumber = xlAutomatic
+        .Order = xlDownThenOver
+        .BlackAndWhite = False
+        .Zoom = 100
+        .PrintErrors = xlPrintErrorsDisplayed
+        .OddAndEvenPagesHeaderFooter = False
+        .DifferentFirstPageHeaderFooter = False
+        .ScaleWithDocHeaderFooter = True
+        .AlignMarginsHeaderFooter = True
+        .EvenPage.LeftHeader.Text = ""
+        .EvenPage.CenterHeader.Text = ""
+        .EvenPage.RightHeader.Text = ""
+        .EvenPage.LeftFooter.Text = ""
+        .EvenPage.CenterFooter.Text = ""
+        .EvenPage.RightFooter.Text = ""
+        .FirstPage.LeftHeader.Text = ""
+        .FirstPage.CenterHeader.Text = ""
+        .FirstPage.RightHeader.Text = ""
+        .FirstPage.LeftFooter.Text = ""
+        .FirstPage.CenterFooter.Text = ""
+        .FirstPage.RightFooter.Text = ""
+    End With
+
+    Selection.Borders(xlDiagonalDown).LineStyle = xlNone
+    Selection.Borders(xlDiagonalUp).LineStyle = xlNone
+    With Selection.Borders(xlEdgeLeft)
+        .LineStyle = xlContinuous
+        .ColorIndex = xlAutomatic
+        .TintAndShade = 0
+        .Weight = xlThin
+    End With
+    With Selection.Borders(xlEdgeTop)
+        .LineStyle = xlContinuous
+        .ColorIndex = xlAutomatic
+        .TintAndShade = 0
+        .Weight = xlThin
+    End With
+    With Selection.Borders(xlEdgeBottom)
+        .LineStyle = xlContinuous
+        .ColorIndex = xlAutomatic
+        .TintAndShade = 0
+        .Weight = xlThin
+    End With
+    With Selection.Borders(xlEdgeRight)
+        .LineStyle = xlContinuous
+        .ColorIndex = xlAutomatic
+        .TintAndShade = 0
+        .Weight = xlThin
+    End With
+    With Selection.Borders(xlInsideVertical)
+        .LineStyle = xlContinuous
+        .ColorIndex = xlAutomatic
+        .TintAndShade = 0
+        .Weight = xlThin
+    End With
+    With Selection.Borders(xlInsideHorizontal)
+        .LineStyle = xlContinuous
+        .ColorIndex = xlAutomatic
+        .TintAndShade = 0
+        .Weight = xlThin
+    End With
+    Range("A1:E1").Select
+    Selection.Borders(xlDiagonalDown).LineStyle = xlNone
+    Selection.Borders(xlDiagonalUp).LineStyle = xlNone
+    Selection.Borders(xlEdgeLeft).LineStyle = xlNone
+    Selection.Borders(xlEdgeTop).LineStyle = xlNone
+    Selection.Borders(xlEdgeBottom).LineStyle = xlNone
+    Selection.Borders(xlEdgeRight).LineStyle = xlNone
+    Selection.Borders(xlInsideVertical).LineStyle = xlNone
+    Selection.Borders(xlInsideHorizontal).LineStyle = xlNone
+    Range("A1").Select
+    ActiveCell.FormulaR1C1 = "Holds Queue items"
+    Range("B1").Select
+    ActiveCell.FormulaR1C1 = "=COUNTA(R[2]C[-1]:R[1499]C[-1])"
+    Range("B2").Select
+
+    With ActiveSheet.PageSetup
+        .PrintTitleRows = "$2:$2"
+        .PrintTitleColumns = ""
+    End With
+
+    With ActiveSheet.PageSetup
+        .LeftHeader = ""
+        .CenterHeader = ""
+        .RightHeader = ""
+        .LeftFooter = "&D"
+        .CenterFooter = "Page &P of &N"
+        .RightFooter = ""
+        .LeftMargin = Application.InchesToPoints(0.75)
+        .RightMargin = Application.InchesToPoints(0.25)
+        .TopMargin = Application.InchesToPoints(0.25)
+        .BottomMargin = Application.InchesToPoints(0.25)
+        .HeaderMargin = Application.InchesToPoints(0.3)
+        .FooterMargin = Application.InchesToPoints(0.3)
+        .PrintHeadings = False
+        .PrintGridlines = False
+        .PrintComments = xlPrintNoComments
+        .CenterHorizontally = False
+        .CenterVertically = False
+        .Orientation = xlPortrait
+        .Draft = False
+        .PaperSize = xlPaperLetter
+        .FirstPageNumber = xlAutomatic
+        .Order = xlDownThenOver
+        .BlackAndWhite = False
+        .Zoom = 100
+        .PrintErrors = xlPrintErrorsDisplayed
+        .OddAndEvenPagesHeaderFooter = False
+        .DifferentFirstPageHeaderFooter = False
+        .ScaleWithDocHeaderFooter = True
+        .AlignMarginsHeaderFooter = True
+        .EvenPage.LeftHeader.Text = ""
+        .EvenPage.CenterHeader.Text = ""
+        .EvenPage.RightHeader.Text = ""
+        .EvenPage.LeftFooter.Text = ""
+        .EvenPage.CenterFooter.Text = ""
+        .EvenPage.RightFooter.Text = ""
+        .FirstPage.LeftHeader.Text = ""
+        .FirstPage.CenterHeader.Text = ""
+        .FirstPage.RightHeader.Text = ""
+        .FirstPage.LeftFooter.Text = ""
+        .FirstPage.CenterFooter.Text = ""
+        .FirstPage.RightFooter.Text = ""
+    End With
+   End Sub
